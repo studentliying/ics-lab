@@ -1,0 +1,44 @@
+# Name: Li Ying
+# ID: 516030910444
+
+# Execution begins at address 0
+	.pos 0
+init:
+	irmovq Stack, %rsp
+	irmovq Stack, %rbp
+	call Main
+	halt
+
+# Sample linked list
+	.align 8
+ele1:
+	.quad 0x00a
+	.quad ele2
+ele2:
+	.quad 0x0b0
+	.quad ele3
+ele3:
+	.quad 0xc00
+	.quad 0
+
+Main:
+	pushq %rbp
+	irmovq $0, %rax
+	irmovq ele1, %rcx
+	andq %rcx, %rcx
+	je End
+
+Loop:
+	mrmovq (%rcx), %rdx
+	addq %rdx, %rax
+	mrmovq 8(%rcx),%rcx
+	andq %rcx, %rcx
+	jne Loop
+
+End:
+	popq %rbp
+	ret
+
+	.pos 0x200
+Stack:
+

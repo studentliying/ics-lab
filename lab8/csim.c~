@@ -1,0 +1,63 @@
+/*
+ *
+ * Student Name: Li Ying
+ * Student ID: 516030910444
+ *
+ */
+#include "cachelab.h"
+
+
+static int hit_count;
+static int miss_count;
+static int eviction_count;
+static long* lru_ptr;
+
+typedef struct
+{
+	int valid;
+	int tag;
+	long* next_line;
+}line;
+
+
+typedef struct
+{
+	int line_num;
+	line* cache_line;
+}set;
+
+
+typedef struct
+{
+	int line_num;
+	int set_num;
+	set* cache_set;
+}cache_sim;
+
+int init_cache(cache_sim* cache, int s, int E, int b)
+{
+	cache -> line_num = E;
+	cache -> set_num = (2 << s);
+ 	cache -> cache_set = (set*)malloc(cache->set_num * sizeof(set));
+	for (int i = 0; i < cache -> set_num; i++)
+	{
+		cache -> cache_set[i].line_num = E;
+		cache -> cache_set[i].cache_line = (line*)malloc(E * siezeof(line));
+		if (! cache -> cache_set[i].cache_line)
+			return -1;
+		for (int j = 0; j < E; j++)
+		{
+			cache -> cache_set[i].cache_line[j].valid = 0;
+			cache -> cache_set[i].cache_line[j].tag = 0;
+			cache -> cache_set[i].cache_line[j].next_line = NULL;
+		}
+	}
+	return 1;
+}
+
+
+int main()
+{
+    printSummary(hit_count, miss_count, eviction_count);
+    return 0;
+}

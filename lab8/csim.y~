@@ -1,0 +1,274 @@
+/*
+ *
+ * Student Name: Li Ying
+ * Student ID: 516030910444
+ *
+ */
+#include "cachelab.h"
+#include <stdlib.h>
+#include <getopt.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+
+#define HIT 1
+#define MISS 2
+#define MISS_M_EVICTION 3
+#define MISS_M_HIT 4
+#define MISS_EVICTION 5
+
+
+static int hit_count;
+static int miss_count;
+static int eviction_count;
+
+typedef struct
+{
+	int valid;
+	int tag;
+	struct line* next_line;
+}line;
+
+
+typedef struct
+{
+	int line_num; //total count of used line number
+	line* cache_line;
+    line* head_line;
+}set;
+
+
+typedef struct
+{
+	int line_num;
+	int set_num;
+	set* cache_set;
+}cache_sim;
+
+
+int init_cache(cache_sim* cache, int s, int E, int b)
+{
+	cache -> line_num = E;
+	cache -> set_num = (2 << s);
+ 	cache -> cache_set = (set*)malloc(cache->set_num * sizeof(set));
+	for (int i = 0; i < cache -> set_num; i++)
+	{
+		cache -> cache_set[i].line_num = 0;
+		(cache -> cache_set[i]).head_line = NULL;
+	}
+	return 1;
+}
+
+
+int parse_cmd(int argc, char** argv, int* s, int* E, int* b, int* flag, char* filename)
+{
+	int arg_num = 0;
+	int temp;
+	while ((temp = getopt(argc, argv, "s:E:b:t:vh")) != -1)
+	{
+		switch (temp){
+			case 's':
+				*s = atoi(optarg);
+				arg_num += 1;
+				break;
+			case 'E':
+			    *E = atoi(optarg);
+				arg_num += 1;
+				break;
+			case 'b':
+				*b = atoi(optarg);
+				arg_num += 1;
+				break;
+			case 'v':
+				*flag = 1;
+				arg_num += 1;
+				break;
+			case 't':
+				strcpy(filename, optarg);
+				arg_num ++;
+				break;
+			case 'h':
+			default:
+			printf("mdzz");
+			break;
+		}
+	}
+	if (arg_num < 4)
+		return -1;
+	return 0;
+}
+
+
+void init_line(line* temp_line)
+{
+	temp_line->valid = 0;
+	temp_line->tag = 0;
+	temp_line->next_line = NULL;
+}
+
+line* get_last_line(cache_sim cache, int NO_set)
+{
+	line* temp = (cache.cache_set[NO_set]).head_line;
+	while (temp->next_line)
+		temp = (temp->next_line);
+	return temp;
+}
+
+
+line* select_line(cache_sim cache, int NO_set)
+{
+	line* head = (cache.cache_set[NO_set]).head_line;
+	if (head == NULL)
+	{
+		head = (line*)malloc(sizeof(line));
+		init_line(head);
+		return head;
+	}
+
+	int count = 0;
+	for (line* temp = head; (temp->next_line)!= NULL; temp = (temp->next_line))
+		count ++ ;
+	if ( count < cache.line_num )
+	{
+		line* temp = (line*)malloc(sizeof(line));
+		init_line(temp);
+		return temp;
+	}
+	else
+		return head;
+}
+
+
+int process(char op, cache_sim cache, int NO_set, int addr_tag, int size)
+{
+	line* new_line = NULL;
+	line* temp = (cache.cache_set[NO_set]).headline;
+
+    // if hit
+	if ((temp->valid == 1) && (temp->tag == addr_tag))  //hit the head line
+	{
+		(cache.cache_set[NO_set]).head_line = (temp->next_line);
+		(temp->next_line) = NULL;
+		new_line = temp;
+	}
+	while (temp->next_line)
+	{
+        if (((temp->next_line)->valid == 1) && ((temp->next_line)->tag == addr_tag))    //hit the middle line
+		{
+			line* post = ((temp->next_line)->next_line);	
+			(temp->next_line) = post;
+			(temp->next_line) = NULL;
+			new_line = (temp->next_line);
+		}	
+		temp = (temp->next_line);	
+	}	
+	if (new_line != NULL)
+	{
+		(temp->next_line)= new_line;
+		if (op == 'M')
+			hit_count += 2;
+		hit_count += 1;
+		return HIT;
+    }
+
+	//if miss
+	miss_count += 1;
+	if (op != 'M')
+	{
+		line* new_line = select_line(cache, NO_set);
+		if (new_line->valid == 1)      //evict the least recently used line
+		{
+			(new_line->tag) = addr_tag;
+			(cache.cache_set[NO_set]).head_line = (new_line->next_line);
+			(get_last_line(cache, NO_set)->next_line) = new_line;
+			eviction_count += 1;
+			return MISS_EVICTION;
+		}
+		else                           //put the new_line to the array
+		{
+			(new_line->valid) = 1;
+			(new_line->tag) = addr_tag;
+			(get_last_line(cache, NO_set)->next_line) = new_line;
+			return MISS;
+		}
+	}
+	else
+	{
+		if ((new_line->valid) == 1)      //evict the least recently used line
+		{
+			(new_line->tag) = addr_tag;
+			(cache.cache_set[NO_set]).head_line = (new_line->next_line);
+			(get_last_line(cache, NO_set)->next_line) = new_line;
+			eviction_count += 1;
+			return MISS_M_EVICTION;
+		}
+		else                           //put the new_line to the array
+		{
+			(new_line->valid) = 1;
+			(new_line->tag) = addr_tag;
+			(get_last_line(cache, NO_set)->next_line) = new_line;
+			return MISS_M_HIT;
+		}
+	
+	}
+}
+
+
+int main(int argc, char** argv)
+{
+    int s, E, b;
+	int flag = 0;
+	char filename[50];
+	char instr[50];
+	cache_sim cache;
+	if (parse_cmd(argc, argv, &s, &E, &b, &flag, filename) < 0)
+		exit(-1);
+	init_cache(&cache, s, E, b);
+	FILE *fp = fopen(filename, "r");
+	if (!fp)
+	{
+		printf("Cannot open the file");
+		exit(-1);
+	}
+
+	while (fgets(instr, 50, fp) != NULL)
+	{
+		char *pos = instr;
+		while (*pos==' ')
+			pos += 1 ;
+		int addr, size;
+		char op, tp;
+		sscanf(pos, "%c%x%c%d", &op, &addr, &tp, &size);
+		if (op == 'I')
+			continue;
+
+		int NO_set = (0x7fffffff>>(31-s))&((addr)>>b);
+		int addr_tag = ((addr)>>(s+b))&(0x7fffffff>>(31-s-b));
+		int state = process(op, cache, NO_set, addr_tag, size);
+		if (flag)
+		{
+			switch (state){
+				case(HIT):
+					if(op == 'M')
+						printf("%c %x,%d hit hit\n", op, addr, size);
+					else
+						printf("%c %x,%d hit\n", op, addr, size);
+					break;
+				case(MISS):
+					printf("%c %x,%d miss\n", op, addr, size);
+					break;
+				case(MISS_M_EVICTION):
+			        printf("%c %x,%d miss,eviction hit\n", op, addr, size);
+					break;
+				case(MISS_M_HIT):
+					printf("%c %x,%d miss hit\n", op, addr, size);
+					break;
+				case(MISS_EVICTION):
+					printf("%c %x,%d miss eviction\n", op, addr, size);
+					break;
+				}
+		}
+	}
+    printSummary(hit_count, miss_count, eviction_count);
+    return 0;
+}

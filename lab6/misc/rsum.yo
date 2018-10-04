@@ -1,0 +1,56 @@
+                            | # Name: Li Ying
+                            | # ID: 516030910444
+                            | 
+                            | # Execution begins at address 0
+0x000:                      | 	.pos 0
+0x000:                      | init:
+0x000: 30f40002000000000000 | 	irmovq Stack, %rsp
+0x00a: 30f50002000000000000 | 	irmovq Stack, %rbp
+0x014: 805000000000000000   | 	call Main
+0x01d: 00                   | 	halt
+                            | 
+                            | # Sample linked list
+0x020:                      | 	.align 8
+0x020:                      | ele1:
+0x020: 0a00000000000000     | 	.quad 0x00a
+0x028: 3000000000000000     | 	.quad ele2
+0x030:                      | ele2:
+0x030: b000000000000000     | 	.quad 0x0b0
+0x038: 4000000000000000     | 	.quad ele3
+0x040:                      | ele3:
+0x040: 000c000000000000     | 	.quad 0xc00
+0x048: 0000000000000000     | 	.quad 0
+                            | 
+0x050:                      | Main:
+0x050: a05f                 | 	pushq %rbp
+0x052: 30f12000000000000000 | 	irmovq ele1, %rcx
+0x05c: 30f00000000000000000 | 	irmovq $0, %rax
+0x066: 30f30000000000000000 | 	irmovq $0, %rbx
+0x070: a01f                 | 	pushq %rcx
+0x072: 807e00000000000000   | 	call Rsum
+0x07b: b05f                 | 	popq %rbp
+0x07d: 90                   | 	ret
+                            | 
+0x07e:                      | Rsum:
+0x07e: a05f                 | 	pushq %rbp
+0x080: 2045                 | 	rrmovq %rsp, %rbp
+0x082: a03f                 | 	pushq %rbx
+0x084: 30f70800000000000000 | 	irmovq 8, %rdi
+0x08e: 6174                 | 	subq %rdi, %rsp
+0x090: 50151000000000000000 | 	mrmovq 16(%rbp),%rcx
+0x09a: 6211                 | 	andq %rcx, %rcx
+0x09c: 73ce00000000000000   | 	je End
+0x0a5: 50310000000000000000 | 	mrmovq (%rcx), %rbx
+0x0af: 50110800000000000000 | 	mrmovq 8(%rcx), %rcx
+0x0b9: 40140000000000000000 | 	rmmovq %rcx, (%rsp)
+0x0c3: 807e00000000000000   | 	call Rsum
+0x0cc: 6030                 | 	addq %rbx, %rax
+                            | 
+0x0ce:                      | End:
+0x0ce: 6074                 | 	addq %rdi, %rsp
+0x0d0: b03f                 | 	popq %rbx
+0x0d2: b05f                 | 	popq %rbp
+0x0d4: 90                   | 	ret
+                            | 
+0x200:                      | 	.pos 0x200
+0x200:                      | Stack:
